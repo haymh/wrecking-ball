@@ -69,7 +69,7 @@ void Window::displayCallback() {
 	glMatrixMode(GL_MODELVIEW);  // make sure we're in Modelview mode
 	glLoadIdentity();
 	//glLoadMatrixd(camera.getMatrix().getPointer());
-	
+
 	root->draw(camera.getMatrix());
 
 	cerr << "FPS: " << fps << endl;
@@ -79,10 +79,29 @@ void Window::displayCallback() {
 
 // communicate with keyboard
 void Window::keyBoardCallBack(unsigned char key, int x, int y) {
+	Matrix4d rotationUpdate;
+	double angleUpdate = 1.5;
+	
 	switch (key) {
-		case 'e':
+		// up
+		case 'w':
+			rotationUpdate.makeRotateX(-angleUpdate);
+			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
 			break;
-		case 'r':
+		// down
+		case 'a':
+			rotationUpdate.makeRotateY(-angleUpdate);
+			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+			break;
+		// left
+		case 's':
+			rotationUpdate.makeRotateX(angleUpdate);
+			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+			break;
+		// right
+		case 'd':
+			rotationUpdate.makeRotateY(angleUpdate);
+			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
 			break;
 		default:
 			break;
@@ -93,13 +112,7 @@ void Window::SpecialKeysCallBack(int key, int x, int y) {
 }
 
 void Window::MouseClickCallBack(int button, int state, int x, int y) {
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		movement = trackball::MOVEMENT::ROTATION;
-		prevX = x;
-		prevY = y;
-		lastPoint = trackBallMapping(x, y);
-	}
-	else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+	if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
 		movement = trackball::MOVEMENT::SCALING;
 		prevX = x;
 		prevY = y;
@@ -107,6 +120,22 @@ void Window::MouseClickCallBack(int button, int state, int x, int y) {
 	}
 	else
 		movement = trackball::MOVEMENT::NONE;
+
+
+	/*if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		movement = trackball::MOVEMENT::ROTATION;
+		prevX = x;
+		prevY = y;
+		lastPoint = trackBallMapping(x, y);
+		}
+		else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+		movement = trackball::MOVEMENT::SCALING;
+		prevX = x;
+		prevY = y;
+		lastPoint = trackBallMapping(x, y);
+		}
+		else
+		movement = trackball::MOVEMENT::NONE;*/
 }
 
 void Window::MouseMotionCallBack(int x, int y) {
@@ -117,20 +146,6 @@ void Window::MouseMotionCallBack(int x, int y) {
 	currentPoint = trackBallMapping(x, y);
 
 	switch (movement) {
-		case trackball::MOVEMENT::ROTATION:
-		{
-			direction = currentPoint - lastPoint;
-			double velocity = direction.magnitude();
-			if (velocity > 0.0001) {
-				Vector3d rotAxis = lastPoint.cross(currentPoint);
-				rotAxis.normalize();
-				rot_angle = velocity * ROT_SCALAR;
-				Matrix4d rotationUpdate;
-				rotationUpdate.makeRotate(rot_angle, rotAxis);
-				rotation->setMatrix(rotationUpdate * rotation->getMatrix());
-			}
-		}
-			break;
 		case trackball::MOVEMENT::SCALING:
 		{
 			pixel_diff = currentPoint.get(1) - lastPoint.get(1);
@@ -147,6 +162,45 @@ void Window::MouseMotionCallBack(int x, int y) {
 	}
 
 	lastPoint = currentPoint;
+	
+	/*Vector3d direction;
+	double pixel_diff;
+	double rot_angle, zoom_factor;
+	Vector3d currentPoint;
+	currentPoint = trackBallMapping(x, y);
+
+	switch (movement) {
+	case trackball::MOVEMENT::ROTATION:
+	{
+	direction = currentPoint - lastPoint;
+	double velocity = direction.magnitude();
+	if (velocity > 0.0001) {
+	Vector3d rotAxis = lastPoint.cross(currentPoint);
+	rotAxis.normalize();
+	rot_angle = velocity * ROT_SCALAR;
+	Matrix4d rotationUpdate;
+	rotationUpdate.makeRotate(rot_angle, rotAxis);
+	rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+	}
+	}
+	break;
+	case trackball::MOVEMENT::SCALING:
+	{
+	pixel_diff = currentPoint.get(1) - lastPoint.get(1);
+	zoom_factor = 1.0 + pixel_diff * ZOOM_SCALAR;
+
+	Matrix4d scailingUpdate;
+	scailingUpdate.makeScale(zoom_factor, zoom_factor, zoom_factor);
+	scaling->setMatrix(scailingUpdate * scaling->getMatrix());
+	displayCallback();
+	}
+	break;
+	default:
+	break;
+	}
+
+	lastPoint = currentPoint;
+	*/
 }
 
 Vector3d Window::trackBallMapping(int x, int y) {

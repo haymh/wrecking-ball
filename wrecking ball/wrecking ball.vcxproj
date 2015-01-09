@@ -86,6 +86,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Matrix4d.cpp" />
     <ClCompile Include="MatrixTransform.cpp" />
+    <ClCompile Include="Quad.cpp" />
     <ClCompile Include="Sphere.cpp" />
     <ClCompile Include="Vector3d.cpp" />
     <ClCompile Include="Vector4d.cpp" />
@@ -103,6 +104,7 @@
     <ClInclude Include="Matrix4d.h" />
     <ClInclude Include="MatrixTransform.h" />
     <ClInclude Include="Node.h" />
+    <ClInclude Include="Quad.h" />
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="Vector3d.h" />
     <ClInclude Include="Vector4d.h" />
