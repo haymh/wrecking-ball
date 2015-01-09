@@ -85,22 +85,22 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 	switch (key) {
 		// up
 		case 'w':
-			rotationUpdate.makeRotateX(-angleUpdate);
+			rotationUpdate.makeRotateX(angleUpdate);
 			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
 			break;
 		// down
 		case 'a':
-			rotationUpdate.makeRotateY(-angleUpdate);
+			rotationUpdate.makeRotateY(angleUpdate);
 			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
 			break;
 		// left
 		case 's':
-			rotationUpdate.makeRotateX(angleUpdate);
+			rotationUpdate.makeRotateX(-angleUpdate);
 			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
 			break;
 		// right
 		case 'd':
-			rotationUpdate.makeRotateY(angleUpdate);
+			rotationUpdate.makeRotateY(-angleUpdate);
 			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
 			break;
 		default:
