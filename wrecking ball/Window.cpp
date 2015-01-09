@@ -31,7 +31,26 @@ void Window::init() {
 
 	root->addChild(scaling);
 	scaling->addChild(rotation);
-	rotation->addChild(new Cube(30.0, Vector3d(1.0, 1.0, 1.0), draw::mode::WIRE));
+
+	GLdouble wall_horizontal_offset = 5;
+	GLdouble wall_vertical_offset = 5;
+	
+	for (int i = 0; i < 10; ++i) {
+		for (int j = -5; j < 5; ++j) {
+			Matrix4d temp;
+			temp.makeTranslate((GLdouble) j * wall_horizontal_offset + 2.5, (GLdouble) i * wall_vertical_offset + 2.5, 0.0);
+			MatrixTransform* transformation = new MatrixTransform(temp);
+			rotation->addChild(transformation);
+			transformation->addChild(new Cube(5.0, Vector3d(1.0, 1.0, 1.0), draw::mode::SOLID));
+
+			if (i % 2 == 1) {
+				wall_horizontal_offset += 2.5;
+			}
+			else {
+				wall_horizontal_offset -= 2.5;
+			}
+		}
+	}
 }
 
 //----------------------------------------------------------------------------
