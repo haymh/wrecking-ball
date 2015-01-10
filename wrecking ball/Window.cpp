@@ -172,9 +172,9 @@ void Window::renderPlane(bulletObject* bobj)
 	glMultMatrixf(mat);     //translation,rotation
 	glBegin(GL_QUADS);
 	glVertex3f(-1000, 0, 1000);
-	glVertex3f(-1000, 0, -1000);
-	glVertex3f(1000, 0, -1000);
 	glVertex3f(1000, 0, 1000);
+	glVertex3f(1000, 0, -1000);
+	glVertex3f(-1000, 0, -1000);
 	glEnd();
 	glPopMatrix();
 }
@@ -275,8 +275,10 @@ void Window::displayCallback() {
 	//root->draw(Matrix4d());
 	for (int i = 0; i<bodies.size(); i++)
 	{
-		if (bodies[i]->body->getCollisionShape()->getShapeType() == STATIC_PLANE_PROXYTYPE)
+		if (bodies[i]->body->getCollisionShape()->getShapeType() == STATIC_PLANE_PROXYTYPE){
 			renderPlane(bodies[i]);
+			//cerr << "rendering plane" << endl;
+		}
 		else if (bodies[i]->body->getCollisionShape()->getShapeType() == SPHERE_SHAPE_PROXYTYPE)
 			renderSphere(bodies[i]);
 		else if (bodies[i]->body->getCollisionShape()->getShapeType() == BOX_SHAPE_PROXYTYPE)
