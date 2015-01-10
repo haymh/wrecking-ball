@@ -20,8 +20,22 @@
 #include "Vector3d.h"
 #include "Vector4d.h"
 #include "Cube.h"
+#include <bullet/btBulletDynamicsCommon.h>
+#include <bullet/BulletSoftBody/btSoftRigidDynamicsWorld.h>
+#include <bullet/BulletSoftBody/btDefaultSoftBodySolver.h>
+#include <bullet/BulletSoftBody/btSoftBodyHelpers.h>
+#include <bullet/BulletSoftBody/btSoftBodyRigidBodyCollisionConfiguration.h>
 
 using namespace std;
+
+struct bulletObject{
+	int id;
+	float r, g, b;
+	bool hit;
+	bool selected;
+	btRigidBody* body;
+	bulletObject(btRigidBody* b, int i, float r0, float g0, float b0) : body(b), id(i), r(r0), g(g0), b(b0), hit(false), selected(false) {}
+};
 
 class Window	  // OpenGL output window related routines
 {
@@ -65,6 +79,14 @@ class Window	  // OpenGL output window related routines
 
 	// Track Ball mapping
 	static Vector3d trackBallMapping(int, int);
+
+	// bullet related functions
+	static btRigidBody* addSphere(float rad, float x, float y, float z, float mass);
+	static void renderSphere(bulletObject* bobj);
+	static btRigidBody* addBox(float width, float height, float depth, float x, float y, float z, float mass);
+	static void renderBox(bulletObject* bobj);
+	static void renderPlane(bulletObject* bobj);
+
 };
 
 #endif

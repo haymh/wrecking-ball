@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "Window.h"
+#include <vector>
 
 // Window
 int Window::width = 512;   // set window width in pixels here
@@ -22,7 +23,161 @@ int Window::frames = 0;
 GLdouble Window::fps = 0;
 
 // Camera(center, look at, up)
-Camera Window::camera(Vector3d(0.0, 10.0, 50.0), Vector3d(0.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0));
+Vector3d eye(0.0, 20.0, 50.0);
+Vector3d lookat(0.0, 0.0, 0.0);
+Vector3d up(0.0, 1.0, 0.0);
+Camera Window::camera(eye, lookat, up);
+
+// physics world parameters
+btDynamicsWorld* world;
+btDispatcher* dispatcher;
+btCollisionConfiguration* collisionConfig;
+btBroadphaseInterface* broadphase;
+btConstraintSolver* solver;
+btDefaultSoftBodySolver* softbodySolver;
+std::vector<bulletObject*> bodies;
+
+
+
+
+
+btRigidBody* Window::addSphere(float rad, float x, float y, float z, float mass)
+{
+	btTransform t;
+	t.setIdentity();
+	t.setOrigin(btVector3(x, y, z));
+	btSphereShape* sphere = new btSphereShape(rad);
+	btVector3 inertia(0, 0, 0);
+	if (mass != 0.0)
+		sphere->calculateLocalInertia(mass, inertia);
+
+	btMotionState* motion = new btDefaultMotionState(t);
+	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
+	btRigidBody* body = new btRigidBody(info);
+	world->addRigidBody(body);
+	bodies.push_back(new bulletObject(body, 0, 1.0, 0.0, 0.0));
+	body->setUserPointer(bodies[bodies.size() - 1]);
+	return body;
+}
+
+void Window::renderSphere(bulletObject *bobj)
+{
+	btRigidBody* sphere = bobj->body;
+	if (sphere->getCollisionShape()->getShapeType() != SPHERE_SHAPE_PROXYTYPE)
+		return;
+	if (!bobj->hit)
+		glColor3f(bobj->r, bobj->g, bobj->b);
+	else
+		glColor3f(1, 0, 0);
+
+	float r = ((btSphereShape*)sphere->getCollisionShape())->getRadius();
+	btTransform t;
+	sphere->getMotionState()->getWorldTransform(t);
+	float mat[16];
+	t.getOpenGLMatrix(mat);
+	glPushMatrix();
+	glMultMatrixf(mat);     //translation,rotation
+	glutSolidSphere(1, 20, 20);
+	glPopMatrix();
+}
+
+btRigidBody* Window::addBox(float width, float height, float depth, float x, float y, float z, float mass)
+{
+	btTransform t;
+	t.setIdentity();
+	t.setOrigin(btVector3(x, y, z));
+	btBoxShape* sphere = new btBoxShape(btVector3(width / 2.0, height / 2.0, depth / 2.0));
+	btVector3 inertia(0, 0, 0);
+	if (mass != 0.0)
+		sphere->calculateLocalInertia(mass, inertia);
+
+	btMotionState* motion = new btDefaultMotionState(t);
+	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
+	btRigidBody* body = new btRigidBody(info);
+	world->addRigidBody(body);
+	bodies.push_back(new bulletObject(body, 3, 1.0, 1.0, 0.0));
+	body->setUserPointer(bodies[bodies.size() - 1]);
+	return body;
+}
+
+void Window::renderBox(bulletObject* bobj)
+{
+	btRigidBody* sphere = bobj->body;
+	if (sphere->getCollisionShape()->getShapeType() != BOX_SHAPE_PROXYTYPE)
+		return;
+	if (!bobj->hit)
+		glColor3f(bobj->r, bobj->g, bobj->b);
+	else
+		glColor3f(1, 0, 0);
+	btVector3 extent = ((btBoxShape*)sphere->getCollisionShape())->getHalfExtentsWithoutMargin();
+	btTransform t;
+	sphere->getMotionState()->getWorldTransform(t);
+	float mat[16];
+	t.getOpenGLMatrix(mat);
+	glPushMatrix();
+	glMultMatrixf(mat);     //translation,rotation
+	glBegin(GL_QUADS);
+	glVertex3f(-extent.x(), extent.y(), -extent.z());
+	glVertex3f(-extent.x(), -extent.y(), -extent.z());
+	glVertex3f(-extent.x(), -extent.y(), extent.z());
+	glVertex3f(-extent.x(), extent.y(), extent.z());
+	glEnd();
+	glBegin(GL_QUADS);
+	glVertex3f(extent.x(), extent.y(), -extent.z());
+	glVertex3f(extent.x(), -extent.y(), -extent.z());
+	glVertex3f(extent.x(), -extent.y(), extent.z());
+	glVertex3f(extent.x(), extent.y(), extent.z());
+	glEnd();
+	glBegin(GL_QUADS);
+	glVertex3f(-extent.x(), extent.y(), extent.z());
+	glVertex3f(-extent.x(), -extent.y(), extent.z());
+	glVertex3f(extent.x(), -extent.y(), extent.z());
+	glVertex3f(extent.x(), extent.y(), extent.z());
+	glEnd();
+	glBegin(GL_QUADS);
+	glVertex3f(-extent.x(), extent.y(), -extent.z());
+	glVertex3f(-extent.x(), -extent.y(), -extent.z());
+	glVertex3f(extent.x(), -extent.y(), -extent.z());
+	glVertex3f(extent.x(), extent.y(), -extent.z());
+	glEnd();
+	glBegin(GL_QUADS);
+	glVertex3f(-extent.x(), extent.y(), -extent.z());
+	glVertex3f(-extent.x(), extent.y(), extent.z());
+	glVertex3f(extent.x(), extent.y(), extent.z());
+	glVertex3f(extent.x(), extent.y(), -extent.z());
+	glEnd();
+	glBegin(GL_QUADS);
+	glVertex3f(-extent.x(), -extent.y(), -extent.z());
+	glVertex3f(-extent.x(), -extent.y(), extent.z());
+	glVertex3f(extent.x(), -extent.y(), extent.z());
+	glVertex3f(extent.x(), -extent.y(), -extent.z());
+	glEnd();
+	glPopMatrix();
+}
+
+void Window::renderPlane(bulletObject* bobj)
+{
+	btRigidBody* plane = bobj->body;
+	if (plane->getCollisionShape()->getShapeType() != STATIC_PLANE_PROXYTYPE)
+		return;
+	if (!bobj->hit)
+		glColor3f(bobj->r, bobj->g, bobj->b);
+	else
+		glColor3f(1, 0, 0);
+	btTransform t;
+	plane->getMotionState()->getWorldTransform(t);
+	float mat[16];
+	t.getOpenGLMatrix(mat);
+	glPushMatrix();
+	glMultMatrixf(mat);     //translation,rotation
+	glBegin(GL_QUADS);
+	glVertex3f(-1000, 0, 1000);
+	glVertex3f(-1000, 0, -1000);
+	glVertex3f(1000, 0, -1000);
+	glVertex3f(1000, 0, 1000);
+	glEnd();
+	glPopMatrix();
+}
 
 void Window::init() {
 	root = new MatrixTransform(Matrix4d());
@@ -31,17 +186,38 @@ void Window::init() {
 
 	root->addChild(scaling);
 	scaling->addChild(rotation);
+	
+	
+	// setting up physics world
+	collisionConfig = new btSoftBodyRigidBodyCollisionConfiguration();
+	dispatcher = new btCollisionDispatcher(collisionConfig);
+	broadphase = new btDbvtBroadphase();
+	solver = new btSequentialImpulseConstraintSolver();
+	softbodySolver = new btDefaultSoftBodySolver();
+	world = new btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
+	world->setGravity(btVector3(0, -10, 0));
 
+
+	// setting up ground
+	btTransform t;
+	t.setIdentity();
+	t.setOrigin(btVector3(0, 0, 0));
+	btStaticPlaneShape* plane = new btStaticPlaneShape(btVector3(0, 1, 0), 0);
+	btMotionState* motion = new btDefaultMotionState(t);
+	btRigidBody::btRigidBodyConstructionInfo info(0.0, motion, plane);
+	btRigidBody* body = new btRigidBody(info);
+	world->addRigidBody(body);
+	bodies.push_back(new bulletObject(body, 4, 0.8, 0.8, 0.8));
+	body->setUserPointer(bodies[bodies.size() - 1]);
+
+
+	// setting up wall
 	GLdouble wall_horizontal_offset = 5;
 	GLdouble wall_vertical_offset = 5;
-	
 	for (int i = 0; i < 10; ++i) {
 		for (int j = -5; j < 5; ++j) {
-			Matrix4d temp;
-			temp.makeTranslate((GLdouble) j * wall_horizontal_offset + 2.5, (GLdouble) i * wall_vertical_offset + 2.5, 0.0);
-			MatrixTransform* transformation = new MatrixTransform(temp);
-			rotation->addChild(transformation);
-			transformation->addChild(new Cube(5.0, Vector3d(1.0, 1.0, 1.0), draw::mode::SOLID));
+
+			addBox(5, 5, 5, j * wall_horizontal_offset + 2.5, i * wall_vertical_offset + 2.5, 0, 0.5);
 
 			if (i % 2 == 1) {
 				wall_horizontal_offset += 2.5;
@@ -51,6 +227,9 @@ void Window::init() {
 			}
 		}
 	}
+
+	addSphere(1.0, 0, 20, 0, 1.0);
+
 }
 
 //----------------------------------------------------------------------------
@@ -84,13 +263,27 @@ void Window::reshapeCallback(int w, int h) {
 //----------------------------------------------------------------------------
 // Callback method called by GLUT when window readraw is necessary or  when glutPostRedisplay() was called.
 void Window::displayCallback() {
+	for (int i = 0; i<bodies.size(); i++)
+		bodies[i]->hit = false;
+	world->stepSimulation(1 / 60.0);
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // clear color and depth buffers
 	glMatrixMode(GL_MODELVIEW);  // make sure we're in Modelview mode
 	glLoadIdentity();
-	//glLoadMatrixd(camera.getMatrix().getPointer());
+	glLoadMatrixd(camera.getMatrix().getPointer());
 
-	root->draw(camera.getMatrix());
+	//root->draw(Matrix4d());
+	for (int i = 0; i<bodies.size(); i++)
+	{
+		if (bodies[i]->body->getCollisionShape()->getShapeType() == STATIC_PLANE_PROXYTYPE)
+			renderPlane(bodies[i]);
+		else if (bodies[i]->body->getCollisionShape()->getShapeType() == SPHERE_SHAPE_PROXYTYPE)
+			renderSphere(bodies[i]);
+		else if (bodies[i]->body->getCollisionShape()->getShapeType() == BOX_SHAPE_PROXYTYPE)
+			renderBox(bodies[i]);
+	}
 
+	
 	cerr << "FPS: " << fps << endl;
 	glFlush();
 	glutSwapBuffers();
@@ -121,6 +314,16 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 		case 'd':
 			rotationUpdate.makeRotateY(-angleUpdate);
 			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+			break;
+
+		case ' ':
+		{
+			btRigidBody* sphere = addSphere(1.0, 0, 20, 0, 1.0);
+			//Vector3d look = lookat;
+			//look.scale(20);
+			//sphere->setLinearVelocity(btVector3(look[0], look[1], look[2]));
+		}
+			
 			break;
 		default:
 			break;
