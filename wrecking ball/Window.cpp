@@ -23,7 +23,7 @@ int Window::frames = 0;
 GLdouble Window::fps = 0;
 
 // Camera(center, look at, up)
-Vector3d eye(0.0, 20.0, 50.0);
+Vector3d eye(0.0, 50.0, 100.0);
 Vector3d lookat(0.0, 0.0, 0.0);
 Vector3d up(0.0, 1.0, 0.0);
 Camera Window::camera(eye, lookat, up);
@@ -318,10 +318,10 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 
 		case ' ':
 		{
-			btRigidBody* sphere = addSphere(1.0, 0, 20, 0, 1.0);
-			//Vector3d look = lookat;
-			//look.scale(20);
-			//sphere->setLinearVelocity(btVector3(look[0], look[1], look[2]));
+			btRigidBody* sphere = addSphere(1.0, eye[0], eye[1], eye[2], 1.0);
+			Vector3d look = lookat - eye;
+			look.scale(0.5);
+			sphere->setLinearVelocity(btVector3(look[0], look[1], look[2]));
 		}
 			
 			break;
