@@ -37,6 +37,12 @@ btConstraintSolver* solver;
 btDefaultSoftBodySolver* softbodySolver;
 std::vector<bulletObject*> bodies;
 
+// wall parameter
+double wall_height = 50;
+double wall_width = 50;
+double wall_thickness = 10;
+int numOfBrick = 10;
+
 
 
 
@@ -212,6 +218,27 @@ void Window::init() {
 
 
 	// setting up wall
+	double wall_area = wall_height * wall_width;
+	double brick_area = wall_area / numOfBrick;
+	double brick_height = brick_area * wall_height / wall_area;
+	double brick_width = brick_area * wall_width / wall_area;
+	int row = wall_height / brick_height;
+	int col = wall_width / brick_width;
+	double x_start = -wall_width / 2;
+	double y_start = brick_height / 2;
+
+
+
+	for (int i = 0; i < row; i++){
+		for (int j = 0; j < col; j++){
+			addBox(brick_width, brick_height, wall_thickness, x_start, y_start, 0, 0.5);
+			x_start += brick_width;
+		}
+		x_start = -wall_width / 2;
+		y_start += brick_height;
+	}
+
+	/*
 	GLdouble wall_horizontal_offset = 5;
 	GLdouble wall_vertical_offset = 5;
 	for (int i = 0; i < 10; ++i) {
@@ -229,7 +256,7 @@ void Window::init() {
 	}
 
 	addSphere(1.0, 0, 20, 0, 1.0);
-
+	*/
 }
 
 //----------------------------------------------------------------------------
