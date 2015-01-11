@@ -82,9 +82,9 @@ class Window	  // OpenGL output window related routines
 	static Vector3d trackBallMapping(int, int);
 
 	// bullet related functions
-	static btRigidBody* addSphere(float rad, float x, float y, float z, float mass);
+	static btRigidBody* addSphere(float rad, float x, float y, float z, float mass, float r, float g, float b);
 	static void renderSphere(bulletObject* bobj);
-	static btRigidBody* addBox(float width, float height, float depth, float x, float y, float z, float mass);
+	static btRigidBody* addBox(float width, float height, float depth, float x, float y, float z, float mass, float r, float g, float b);
 	static void renderBox(bulletObject* bobj);
 	static void renderPlane(bulletObject* bobj);
 	static void renderSoftbody(btSoftBody* b);

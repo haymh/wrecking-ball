@@ -56,7 +56,7 @@ int rayTraceY = Window::height / 2;
 
 
 
-btRigidBody* Window::addSphere(float rad, float x, float y, float z, float mass)
+btRigidBody* Window::addSphere(float rad, float x, float y, float z, float mass, float r, float g, float b)
 {
 	btTransform t;
 	t.setIdentity();
@@ -70,7 +70,7 @@ btRigidBody* Window::addSphere(float rad, float x, float y, float z, float mass)
 	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
-	bodies.push_back(new bulletObject(body, 0, 1.0, 0.0, 0.0));
+	bodies.push_back(new bulletObject(body, 0, r, g, b));
 	body->setUserPointer(bodies[bodies.size() - 1]);
 	return body;
 }
@@ -96,7 +96,7 @@ void Window::renderSphere(bulletObject *bobj)
 	glPopMatrix();
 }
 
-btRigidBody* Window::addBox(float width, float height, float depth, float x, float y, float z, float mass)
+btRigidBody* Window::addBox(float width, float height, float depth, float x, float y, float z, float mass, float r, float g, float b)
 {
 	btTransform t;
 	t.setIdentity();
@@ -110,7 +110,7 @@ btRigidBody* Window::addBox(float width, float height, float depth, float x, flo
 	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
-	bodies.push_back(new bulletObject(body, 3, 1.0, 1.0, 0.0));
+	bodies.push_back(new bulletObject(body, 3, r, g, b));
 	body->setUserPointer(bodies[bodies.size() - 1]);
 	return body;
 }
@@ -181,10 +181,7 @@ void Window::renderPlane(bulletObject* bobj)
 	btRigidBody* plane = bobj->body;
 	if (plane->getCollisionShape()->getShapeType() != STATIC_PLANE_PROXYTYPE)
 		return;
-	if (!bobj->hit)
-		glColor3f(bobj->r, bobj->g, bobj->b);
-	else
-		glColor3f(1, 0, 0);
+	glColor3f(bobj->r, bobj->g, bobj->b);
 	btTransform t;
 	plane->getMotionState()->getWorldTransform(t);
 	float mat[16];
@@ -273,7 +270,10 @@ void Window::init() {
 
 	for (int i = 0; i < row; i++){
 		for (int j = 0; j < col; j++){
-			addBox(brick_width, brick_height, wall_thickness, x_start, y_start, 0, 0.5);
+			if ((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
+				addBox(brick_width, brick_height, wall_thickness, x_start, y_start, 0, 0.5, 0.1, 0.1, 0.1);
+			else
+				addBox(brick_width, brick_height, wall_thickness, x_start, y_start, 0, 0.5, 0.7, 0.7, 0.7);
 			x_start += brick_width;
 		}
 		if (i % 2 == 1)
@@ -293,7 +293,7 @@ void Window::init() {
 	btRigidBody::btRigidBodyConstructionInfo info1(2, motion1, sphere, inertia);
 	btRigidBody* body1 = new btRigidBody(info1);
 	world->addRigidBody(body1);
-	bodies.push_back(new bulletObject(body1, 0, 1.0, 0.0, 0.0));
+	bodies.push_back(new bulletObject(body1, 0, 60.0 / 256.0, 20.0 / 256.0, 134.0 / 256.0));
 	body1->setUserPointer(bodies[bodies.size() - 1]);
 
 	btSoftBody* softBody = btSoftBodyHelpers::CreateRope(world->getWorldInfo(),
@@ -455,7 +455,7 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 		{
 			Vector3d e = camera.getEye();
 			Vector3d d = camera.getLookAt();
-			btRigidBody* sphere = addSphere(1.0, e[0], e[1], e[2], 1.0);
+			btRigidBody* sphere = addSphere(1.0, e[0], e[1], e[2], 1.0, 32.0 / 256.0, 64.0 / 256.0, 20.0 / 256.0);
 			Vector3d look = d - e;
 			look.scale(0.5);
 			sphere->setLinearVelocity(btVector3(look[0], look[1], look[2]));
