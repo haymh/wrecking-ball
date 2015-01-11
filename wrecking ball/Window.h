@@ -86,6 +86,7 @@ class Window	  // OpenGL output window related routines
 	static btRigidBody* addBox(float width, float height, float depth, float x, float y, float z, float mass);
 	static void renderBox(bulletObject* bobj);
 	static void renderPlane(bulletObject* bobj);
+	static void renderSoftbody(btSoftBody* b);
 
 };
 

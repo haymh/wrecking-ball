@@ -29,7 +29,7 @@ Vector3d up(0.0, 1.0, 0.0);
 Camera Window::camera(eye, lookat, up);
 
 // physics world parameters
-btDynamicsWorld* world;
+btSoftRigidDynamicsWorld* world;
 btDispatcher* dispatcher;
 btCollisionConfiguration* collisionConfig;
 btBroadphaseInterface* broadphase;
@@ -189,6 +189,33 @@ void Window::renderPlane(bulletObject* bobj)
 	glPopMatrix();
 }
 
+void Window::renderSoftbody(btSoftBody* b)
+{
+	//faces
+	glColor3f(1.0, 0.0, 1.0);
+	glBegin(GL_TRIANGLES);
+	for (int i = 0; i<b->m_faces.size(); i++)
+	{
+		for (int j = 0; j<3; j++)
+			glVertex3f(b->m_faces[i].m_n[j]->m_x.x(),
+			b->m_faces[i].m_n[j]->m_x.y(),
+			b->m_faces[i].m_n[j]->m_x.z());
+
+	}
+	glEnd();
+	//lines
+	glColor3f(0.0, 0.0, 1.0);
+	glBegin(GL_LINES);
+	for (int i = 0; i<b->m_links.size(); i++)
+	{
+		for (int j = 0; j<2; j++)
+			glVertex3f(b->m_links[i].m_n[j]->m_x.x(),
+			b->m_links[i].m_n[j]->m_x.y(),
+			b->m_links[i].m_n[j]->m_x.z());
+	}
+	glEnd();
+}
+
 void Window::init() {
 	root = new MatrixTransform(Matrix4d());
 	rotation = new MatrixTransform(Matrix4d());
@@ -204,7 +231,7 @@ void Window::init() {
 	broadphase = new btDbvtBroadphase();
 	solver = new btSequentialImpulseConstraintSolver();
 	softbodySolver = new btDefaultSoftBodySolver();
-	world = new btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
+	world = new btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfig, softbodySolver);
 	world->setGravity(btVector3(0, -10, 0));
 
 
@@ -238,9 +265,22 @@ void Window::init() {
 			addBox(brick_width, brick_height, wall_thickness, x_start, y_start, 0, 0.5);
 			x_start += brick_width;
 		}
-		x_start = -wall_width / 2;
+		if (i % 2 == 1)
+			x_start = -wall_width / 2;
+		else
+			x_start = -wall_width / 2 + brick_width / 2;
 		y_start += brick_height;
 	}
+
+	btSoftBody* softBody = btSoftBodyHelpers::CreateRope(world->getWorldInfo(),
+		btVector3(0, 20, 10),
+		btVector3(0, 10, 10),
+		50,
+		1);
+	softBody->m_cfg.viterations = 50;
+	softBody->m_cfg.piterations = 50;
+	softBody->setTotalMass(3.0);
+	world->addSoftBody(softBody);
 
 	/*
 	GLdouble wall_horizontal_offset = 5;
@@ -315,7 +355,8 @@ void Window::displayCallback() {
 		else if (bodies[i]->body->getCollisionShape()->getShapeType() == BOX_SHAPE_PROXYTYPE)
 			renderBox(bodies[i]);
 	}
-
+	for (int i = 0; i<world->getSoftBodyArray().size(); i++)
+		renderSoftbody(world->getSoftBodyArray()[i]);
 	
 	cerr << "FPS: " << fps << endl;
 	glFlush();
@@ -347,8 +388,10 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 
 		case ' ':
 		{
-			btRigidBody* sphere = addSphere(1.0, eye[0], eye[1], eye[2], 1.0);
-			Vector3d look = lookat - eye;
+			Vector3d e = camera.getEye();
+			Vector3d d = camera.getLookAt();
+			btRigidBody* sphere = addSphere(1.0, e[0], e[1], e[2], 1.0);
+			Vector3d look = d - e;
 			look.scale(0.5);
 			sphere->setLinearVelocity(btVector3(look[0], look[1], look[2]));
 		}
@@ -360,6 +403,20 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 }
 
 void Window::SpecialKeysCallBack(int key, int x, int y) {
+	switch (key){
+	case GLUT_KEY_UP:
+		camera.move(UPWARD, 0.5);
+		break;
+	case GLUT_KEY_DOWN:
+		camera.move(DOWNWARD, 0.5);
+		break;
+	case GLUT_KEY_LEFT:
+		camera.move(LEFTWARD, 0.5);
+		break;
+	case GLUT_KEY_RIGHT:
+		camera.move(RIGHTWARD, 0.5);
+		break;
+	}
 }
 
 void Window::MouseClickCallBack(int button, int state, int x, int y) {
