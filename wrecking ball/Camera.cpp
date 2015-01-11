@@ -154,6 +154,51 @@ void Camera::move(Direction dir, double delta){
 	d = d + v;
 	computeMatrix();
 }
+
+void Camera::moveEye(Direction dir, double delta){
+	Matrix4d r;
+	Vector4d eye(e[0], e[1], e[2]);
+	Vector4d upVector(up[0], up[1], up[2]);
+	switch (dir){
+	case RIGHTWARD:{
+		r.makeRotate(delta, up);
+		eye = r * eye;
+		e = eye.getVector3d();
+	}
+		break;
+	case LEFTWARD:{
+		r.makeRotate(-delta, up);
+		eye = r * eye;
+		e = eye.getVector3d();
+	}
+		break;
+
+	case UPWARD:{
+		Vector3d temp = d - e;
+		temp = up.cross(temp);
+		temp.normalize();
+		r.makeRotate(delta, temp);
+		eye = r * eye;
+		upVector = r * upVector;
+		e = eye.getVector3d();
+		up = upVector.getVector3d();
+	}
+		break;
+	case DOWNWARD:{
+		Vector3d temp = d - e;
+		temp = up.cross(temp);
+		temp.normalize();
+		r.makeRotate(-delta, temp);
+		eye = r * eye;
+		upVector = r * upVector;
+		e = eye.getVector3d();
+		up = upVector.getVector3d();
+	}
+		break;
+	}
+	computeMatrix();
+}
+
 void Camera::rotate(Vector3d axis, double angle){
 	Vector3d v = d - e;
 	Vector4d lookat = Vector4d(v[0],v[1],v[2]);

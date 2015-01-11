@@ -122,6 +122,8 @@ void Window::renderBox(bulletObject* bobj)
 	t.getOpenGLMatrix(mat);
 	glPushMatrix();
 	glMultMatrixf(mat);     //translation,rotation
+
+	
 	glBegin(GL_QUADS);
 	glVertex3f(-extent.x(), extent.y(), -extent.z());
 	glVertex3f(-extent.x(), -extent.y(), -extent.z());
@@ -129,10 +131,10 @@ void Window::renderBox(bulletObject* bobj)
 	glVertex3f(-extent.x(), extent.y(), extent.z());
 	glEnd();
 	glBegin(GL_QUADS);
-	glVertex3f(extent.x(), extent.y(), -extent.z());
-	glVertex3f(extent.x(), -extent.y(), -extent.z());
-	glVertex3f(extent.x(), -extent.y(), extent.z());
 	glVertex3f(extent.x(), extent.y(), extent.z());
+	glVertex3f(extent.x(), -extent.y(), extent.z());
+	glVertex3f(extent.x(), -extent.y(), -extent.z());
+	glVertex3f(extent.x(), extent.y(), -extent.z());
 	glEnd();
 	glBegin(GL_QUADS);
 	glVertex3f(-extent.x(), extent.y(), extent.z());
@@ -141,10 +143,10 @@ void Window::renderBox(bulletObject* bobj)
 	glVertex3f(extent.x(), extent.y(), extent.z());
 	glEnd();
 	glBegin(GL_QUADS);
-	glVertex3f(-extent.x(), extent.y(), -extent.z());
-	glVertex3f(-extent.x(), -extent.y(), -extent.z());
-	glVertex3f(extent.x(), -extent.y(), -extent.z());
 	glVertex3f(extent.x(), extent.y(), -extent.z());
+	glVertex3f(extent.x(), -extent.y(), -extent.z());
+	glVertex3f(-extent.x(), -extent.y(), -extent.z());
+	glVertex3f(-extent.x(), extent.y(), -extent.z());
 	glEnd();
 	glBegin(GL_QUADS);
 	glVertex3f(-extent.x(), extent.y(), -extent.z());
@@ -154,10 +156,12 @@ void Window::renderBox(bulletObject* bobj)
 	glEnd();
 	glBegin(GL_QUADS);
 	glVertex3f(-extent.x(), -extent.y(), -extent.z());
-	glVertex3f(-extent.x(), -extent.y(), extent.z());
-	glVertex3f(extent.x(), -extent.y(), extent.z());
 	glVertex3f(extent.x(), -extent.y(), -extent.z());
+	glVertex3f(extent.x(), -extent.y(), extent.z());
+	glVertex3f(-extent.x(), -extent.y(), extent.z());
 	glEnd();
+	
+
 	glPopMatrix();
 }
 
@@ -326,23 +330,19 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 	switch (key) {
 		// up
 		case 'w':
-			rotationUpdate.makeRotateX(angleUpdate);
-			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+			camera.moveEye(UPWARD, 1);
 			break;
 		// down
-		case 'a':
-			rotationUpdate.makeRotateY(angleUpdate);
-			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+		case 's':
+			camera.moveEye(DOWNWARD, 1);
 			break;
 		// left
-		case 's':
-			rotationUpdate.makeRotateX(-angleUpdate);
-			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+		case 'a':
+			camera.moveEye(LEFTWARD, 1);
 			break;
 		// right
 		case 'd':
-			rotationUpdate.makeRotateY(-angleUpdate);
-			rotation->setMatrix(rotationUpdate * rotation->getMatrix());
+			camera.moveEye(RIGHTWARD, 1);
 			break;
 
 		case ' ':
