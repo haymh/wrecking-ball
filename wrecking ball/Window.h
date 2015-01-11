@@ -76,6 +76,7 @@ class Window	  // OpenGL output window related routines
 	// communicate with mouse
 	static void MouseClickCallBack(int, int, int, int);
 	static void MouseMotionCallBack(int, int);
+	static void MousePassiveMotionCallBack(int, int);
 
 	// Track Ball mapping
 	static Vector3d trackBallMapping(int, int);
@@ -87,7 +88,7 @@ class Window	  // OpenGL output window related routines
 	static void renderBox(bulletObject* bobj);
 	static void renderPlane(bulletObject* bobj);
 	static void renderSoftbody(btSoftBody* b);
-
+	static Vector3d rayTracingComputePoint(int x, int y);
 };
 
 #endif

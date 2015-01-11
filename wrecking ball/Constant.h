@@ -8,7 +8,7 @@ enum MODE {
 };
 namespace trackball {
 	enum MOVEMENT {
-		NONE, ROTATION, SCALING
+		NONE, ROTATION, SCALING, SELECTION
 	};
 }
 

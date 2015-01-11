@@ -3,6 +3,9 @@
 #include "Window.h"
 #include <vector>
 
+// Debugger
+bool debugOn = false;
+
 // Window
 int Window::width = 512;   // set window width in pixels here
 int Window::height = 512;   // set window height in pixels here
@@ -10,13 +13,14 @@ int Window::height = 512;   // set window height in pixels here
 // Track Ball
 int Window::prevX = width / 2;
 int Window::prevY = height / 2;
-int Window::movement;
+int Window::movement = trackball::MOVEMENT::NONE;
 Vector3d Window::lastPoint;
 MatrixTransform* Window::root;
 MatrixTransform* Window::rotation;
 MatrixTransform* Window::scaling;
 
 // Frame Calculator 
+bool fpsOn = false;
 int Window::time = 0;
 int Window::baseTime = 0;
 int Window::frames = 0;
@@ -42,6 +46,11 @@ double wall_height = 50;
 double wall_width = 50;
 double wall_thickness = 10;
 int numOfBrick = 10;
+
+// ray tracing
+double scaler = 10000.0;
+int rayTraceX = Window::width / 2;
+int rayTraceY = Window::height / 2;
 
 
 
@@ -83,7 +92,7 @@ void Window::renderSphere(bulletObject *bobj)
 	t.getOpenGLMatrix(mat);
 	glPushMatrix();
 	glMultMatrixf(mat);     //translation,rotation
-	glutSolidSphere(1, 20, 20);
+	glutSolidSphere(r, 20, 20);
 	glPopMatrix();
 }
 
@@ -111,7 +120,9 @@ void Window::renderBox(bulletObject* bobj)
 	btRigidBody* sphere = bobj->body;
 	if (sphere->getCollisionShape()->getShapeType() != BOX_SHAPE_PROXYTYPE)
 		return;
-	if (!bobj->hit)
+	if (bobj->selected)
+		glColor3f(0, 0, 1);
+	else if (!bobj->hit)
 		glColor3f(bobj->r, bobj->g, bobj->b);
 	else
 		glColor3f(1, 0, 0);
@@ -272,14 +283,29 @@ void Window::init() {
 		y_start += brick_height;
 	}
 
+	btTransform t1;
+	t1.setIdentity();
+	t1.setOrigin(btVector3(0, 25, 10));
+	btSphereShape* sphere = new btSphereShape(10);
+	btVector3 inertia(0, 0, 0);
+	sphere->calculateLocalInertia(2, inertia);
+	btMotionState* motion1 = new btDefaultMotionState(t1);
+	btRigidBody::btRigidBodyConstructionInfo info1(2, motion1, sphere, inertia);
+	btRigidBody* body1 = new btRigidBody(info1);
+	world->addRigidBody(body1);
+	bodies.push_back(new bulletObject(body1, 0, 1.0, 0.0, 0.0));
+	body1->setUserPointer(bodies[bodies.size() - 1]);
+
 	btSoftBody* softBody = btSoftBodyHelpers::CreateRope(world->getWorldInfo(),
-		btVector3(0, 20, 10),
-		btVector3(0, 10, 10),
-		50,
+		btVector3(0, 50, 10),
+		btVector3(0, 25, 10),
+		16,
 		1);
 	softBody->m_cfg.viterations = 50;
 	softBody->m_cfg.piterations = 50;
 	softBody->setTotalMass(3.0);
+	//softBody->getCollisionShape()->setMargin(0.01);
+	softBody->appendAnchor(softBody->m_nodes.size() - 1, body1);
 	world->addSoftBody(softBody);
 
 	/*
@@ -308,12 +334,14 @@ void Window::init() {
 void Window::idleCallback() {
 	displayCallback();         // call display routine to show the cube
 
-	frames++;
-	time = glutGet(GLUT_ELAPSED_TIME);
-	if ((time - baseTime) > 1000.0) {
-		fps = frames * 1000.0 / (time - baseTime);
-		baseTime = time;
-		frames = 0;
+	if (fpsOn) {
+		frames++;
+		time = glutGet(GLUT_ELAPSED_TIME);
+		if ((time - baseTime) > 1000.0) {
+			fps = frames * 1000.0 / (time - baseTime);
+			baseTime = time;
+			frames = 0;
+		}
 	}
 }
 
@@ -334,9 +362,39 @@ void Window::reshapeCallback(int w, int h) {
 //----------------------------------------------------------------------------
 // Callback method called by GLUT when window readraw is necessary or  when glutPostRedisplay() was called.
 void Window::displayCallback() {
-	for (int i = 0; i<bodies.size(); i++)
-		bodies[i]->hit = false;
 	world->stepSimulation(1 / 60.0);
+
+	// raytracing test
+	if (movement == trackball::MOVEMENT::SELECTION) {
+		//lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
+		Vector3d direction = (lastPoint - camera.getEye()) * scaler;;
+
+		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
+		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
+		if (rayCallback.hasHit()) {
+			((bulletObject*) (rayCallback.m_collisionObject->getUserPointer()))->selected = true;
+		}
+	}
+	else {
+		//lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
+		Vector3d direction = (lastPoint - camera.getEye()) * scaler;;
+
+		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
+		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
+		if (rayCallback.hasHit()) {
+			((bulletObject*) (rayCallback.m_collisionObject->getUserPointer()))->hit = true;
+		}
+	}
+
+	/*double scaler = 1000.0;
+	Vector3d direction = (camera.getLookAt() - camera.getEye()) * scaler;
+	btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
+	world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
+	if (rayCallback.hasHit()) {
+		((bulletObject*) (rayCallback.m_collisionObject->getUserPointer()))->hit = true;
+	}
+
+	direction.print("direction: ");*/
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // clear color and depth buffers
 	glMatrixMode(GL_MODELVIEW);  // make sure we're in Modelview mode
@@ -358,7 +416,14 @@ void Window::displayCallback() {
 	for (int i = 0; i<world->getSoftBodyArray().size(); i++)
 		renderSoftbody(world->getSoftBodyArray()[i]);
 	
-	cerr << "FPS: " << fps << endl;
+	for (int i = 0; i < bodies.size(); i++) {
+		bodies[i]->hit = false;
+		bodies[i]->selected = false;
+	}
+	
+	if (fpsOn) {
+		cerr << "FPS: " << fps << endl;
+	}
 	glFlush();
 	glutSwapBuffers();
 }
@@ -419,16 +484,31 @@ void Window::SpecialKeysCallBack(int key, int x, int y) {
 	}
 }
 
+
+
 void Window::MouseClickCallBack(int button, int state, int x, int y) {
+	if (debugOn) {
+		cerr << x << ", " << y << endl;
+	}
+
+	// zoom in/out
 	if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
 		movement = trackball::MOVEMENT::SCALING;
 		prevX = x;
 		prevY = y;
 		lastPoint = trackBallMapping(x, y);
 	}
-	else
+	// object selection
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		movement = trackball::MOVEMENT::SELECTION;
+		rayTraceX = x;
+		rayTraceY = y;
+		lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
+	}
+	// reset
+	else {
 		movement = trackball::MOVEMENT::NONE;
-
+	}
 
 	/*if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		movement = trackball::MOVEMENT::ROTATION;
@@ -462,14 +542,23 @@ void Window::MouseMotionCallBack(int x, int y) {
 			Matrix4d scailingUpdate;
 			scailingUpdate.makeScale(zoom_factor, zoom_factor, zoom_factor);
 			scaling->setMatrix(scailingUpdate * scaling->getMatrix());
-			displayCallback();
+			lastPoint = currentPoint;
 		}
+			break;
+		case trackball::MOVEMENT::SELECTION:
+		{
+			rayTraceX = x;
+			rayTraceY = y;
+			lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
+		}
+			break;
+		case trackball::MOVEMENT::NONE:
 			break;
 		default:
 			break;
 	}
 
-	lastPoint = currentPoint;
+
 	
 	/*Vector3d direction;
 	double pixel_diff;
@@ -511,6 +600,12 @@ void Window::MouseMotionCallBack(int x, int y) {
 	*/
 }
 
+void Window::MousePassiveMotionCallBack(int x, int y) {
+	rayTraceX = x;
+	rayTraceY = y;
+	lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
+}
+
 Vector3d Window::trackBallMapping(int x, int y) {
 	Vector3d v;
 	GLdouble d;
@@ -524,4 +619,25 @@ Vector3d Window::trackBallMapping(int x, int y) {
 	v.normalize(); // Still need to normalize, since we only capped d, not v.
 
 	return v;
+}
+
+Vector3d Window::rayTracingComputePoint(int x, int y) {
+	double mvmatrix[16];
+	double projmatrix[16];
+	int viewport[4];
+	double dX, dY, dZ;
+	Vector3d mousePosition, direction;
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+	glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
+
+	gluUnProject((double) x, (double) (viewport[3] - (double) y), 0.0, mvmatrix, projmatrix, viewport, &dX, &dY, &dZ);
+	mousePosition = Vector3d(dX, dY, dZ);
+
+	if (debugOn) {
+		cerr << "x: " << dX << "; y: " << dY << "; z: " << dZ << endl;
+		cerr << "cam: " << camera.getEye()[0] << ", " << camera.getEye()[1] << ", " << camera.getEye()[2] << endl;
+	}
+
+	return mousePosition;
 }

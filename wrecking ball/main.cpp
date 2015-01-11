@@ -45,6 +45,7 @@ int main(int argc, char *argv []) {
 	glutSpecialFunc(Window::SpecialKeysCallBack);
 	glutMouseFunc(Window::MouseClickCallBack);
 	glutMotionFunc(Window::MouseMotionCallBack);
+	glutPassiveMotionFunc(Window::MousePassiveMotionCallBack);
 
 	// Initialize robot matrix:
 	Window::init();
