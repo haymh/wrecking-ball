@@ -40,8 +40,10 @@ btBroadphaseInterface* broadphase;
 btConstraintSolver* solver;
 btDefaultSoftBodySolver* softbodySolver;
 std::vector<bulletObject*> bodies;
-bulletObject* selected;
-btTransform selected_trans;
+btRigidBody* m_pickedBody;
+btVector3 m_pickPos;
+btScalar m_pickDist;
+btGeneric6DofConstraint* m_pickConstraint;
 
 // wall parameter
 double wall_height = 50;
@@ -292,9 +294,9 @@ void Window::init() {
 	t1.setOrigin(btVector3(0, 25, 10));
 	btSphereShape* sphere = new btSphereShape(10);
 	btVector3 inertia(0, 0, 0);
-	sphere->calculateLocalInertia(2, inertia);
+	sphere->calculateLocalInertia(30, inertia);
 	btMotionState* motion1 = new btDefaultMotionState(t1);
-	btRigidBody::btRigidBodyConstructionInfo info1(2, motion1, sphere, inertia);
+	btRigidBody::btRigidBodyConstructionInfo info1(30, motion1, sphere, inertia);
 	btRigidBody* body1 = new btRigidBody(info1);
 	world->addRigidBody(body1);
 	bodies.push_back(new bulletObject(body1, 0, 60.0 / 256.0, 20.0 / 256.0, 134.0 / 256.0));
@@ -303,7 +305,7 @@ void Window::init() {
 	btSoftBody* softBody = btSoftBodyHelpers::CreateRope(world->getWorldInfo(),
 		btVector3(0, 150, 10),
 		btVector3(0, 25, 10),
-		16,
+		50,
 		1);
 	softBody->m_cfg.viterations = 50;
 	softBody->m_cfg.piterations = 50;
@@ -376,9 +378,7 @@ void Window::displayCallback() {
 		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
 		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
 		if (rayCallback.hasHit()) {
-			selected = (bulletObject*)rayCallback.m_collisionObject->getUserPointer();
-			selected->selected = true;
-			selected->body->getMotionState()->getWorldTransform(selected_trans);
+			((bulletObject*)rayCallback.m_collisionObject->getUserPointer())->selected = true;
 
 		}
 	}
@@ -389,9 +389,7 @@ void Window::displayCallback() {
 		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
 		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
 		if (rayCallback.hasHit()) {
-			selected = (bulletObject*)rayCallback.m_collisionObject->getUserPointer();
-			selected->hit = true;
-			selected->body->getMotionState()->getWorldTransform(selected_trans);
+			((bulletObject*)rayCallback.m_collisionObject->getUserPointer())->hit = true;
 		}
 	}
 
@@ -513,10 +511,64 @@ void Window::MouseClickCallBack(int button, int state, int x, int y) {
 		rayTraceX = x;
 		rayTraceY = y;
 		lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
+		btVector3 btRayFrom(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]);
+		Vector3d direction = (lastPoint - camera.getEye()) * scaler;;
+		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
+		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
+		if (rayCallback.hasHit()){
+			bulletObject* pPhysicsData = reinterpret_cast<bulletObject*>(rayCallback.m_collisionObject->getUserPointer());
+			btRigidBody* pBody = pPhysicsData->body;
+			if (pBody && pPhysicsData)
+			{
+				// Code for adding a constraint from Bullet Demo's DemoApplication.cpp
+				if (!(pBody->isStaticObject() || pBody->isKinematicObject()))
+				{
+					m_pickedBody = pBody;
+
+					m_pickPos = rayCallback.m_hitPointWorld;
+
+					btVector3 localPivot = pBody->getCenterOfMassTransform().inverse() * m_pickPos;
+
+					btTransform tr;
+					tr.setIdentity();
+					tr.setOrigin(localPivot);
+					btGeneric6DofConstraint* dof6 = new btGeneric6DofConstraint(*pBody, tr, false);
+					dof6->setLinearLowerLimit(btVector3(0, 0, 0));
+					dof6->setLinearUpperLimit(btVector3(0, 0, 0));
+					dof6->setAngularLowerLimit(btVector3(0, 0, 0));
+					dof6->setAngularUpperLimit(btVector3(0, 0, 0));
+
+					world->addConstraint(dof6);
+					m_pickConstraint = dof6;
+
+					dof6->setParam(BT_CONSTRAINT_STOP_CFM, 0.8f, 0);
+					dof6->setParam(BT_CONSTRAINT_STOP_CFM, 0.8f, 1);
+					dof6->setParam(BT_CONSTRAINT_STOP_CFM, 0.8f, 2);
+					dof6->setParam(BT_CONSTRAINT_STOP_CFM, 0.8f, 3);
+					dof6->setParam(BT_CONSTRAINT_STOP_CFM, 0.8f, 4);
+					dof6->setParam(BT_CONSTRAINT_STOP_CFM, 0.8f, 5);
+
+					dof6->setParam(BT_CONSTRAINT_STOP_ERP, 0.1f, 0);
+					dof6->setParam(BT_CONSTRAINT_STOP_ERP, 0.1f, 1);
+					dof6->setParam(BT_CONSTRAINT_STOP_ERP, 0.1f, 2);
+					dof6->setParam(BT_CONSTRAINT_STOP_ERP, 0.1f, 3);
+					dof6->setParam(BT_CONSTRAINT_STOP_ERP, 0.1f, 4);
+					dof6->setParam(BT_CONSTRAINT_STOP_ERP, 0.1f, 5);
+
+					//save mouse position for dragging
+					m_pickDist = (m_pickPos - btRayFrom).length();
+				}
+			}
+		}
 	}
 	// reset
 	else {
 		movement = trackball::MOVEMENT::NONE;
+		world->removeConstraint(m_pickConstraint);
+		delete m_pickConstraint;
+		m_pickConstraint = NULL;
+		m_pickedBody->setDeactivationTime(0.f);
+		m_pickedBody = NULL;
 	}
 
 	/*if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
@@ -559,29 +611,27 @@ void Window::MouseMotionCallBack(int x, int y) {
 			rayTraceX = x;
 			rayTraceY = y;
 			
-			Vector3d mousePosition = rayTracingComputePoint(rayTraceX, rayTraceY);
+			Vector3d lastPoint= rayTracingComputePoint(rayTraceX, rayTraceY);
 
-			Vector4d v(selected_trans.getOrigin().getX(), selected_trans.getOrigin().getY(), selected_trans.getOrigin().getZ());
-			Vector3d tangent = mousePosition - lastPoint;
-			tangent.scale(0.5);
-			Vector3d v1 = lastPoint - camera.getEye();
-			Vector3d v2 = tangent - camera.getEye();
-			Vector3d normal = v1.cross(tangent);
-			normal.normalize();
-			v1.normalize();
-			v2.normalize();
-			double angle = acos(v1.dot(v2)) * 180.0 / M_PI;
-			Matrix4d r;
-			r.makeRotate(-angle, normal);
-			v = r * v;
-			btTransform t;
-			t.setIdentity();
-			t.setOrigin(btVector3(v[0], v[1], v[2]));
-			selected->body->getMotionState()->setWorldTransform(t);
-			cerr << "angle: " << angle << " ";
-			normal.print("normal");
+			btGeneric6DofConstraint* pickCon = static_cast<btGeneric6DofConstraint*>(m_pickConstraint);
+			if (pickCon)
+			{
+				//keep it at the same picking distance
 
-			lastPoint = mousePosition;
+				btVector3 btRayTo = btVector3(lastPoint[0], lastPoint[1], lastPoint[2]);
+				btVector3 btRayFrom = btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]);
+				btVector3 oldPivotInB = pickCon->getFrameOffsetA().getOrigin();
+
+				btVector3 newPivotB;
+
+				btVector3 dir = btRayTo - btRayFrom;
+				dir.normalize();
+				dir *= m_pickDist;
+
+				newPivotB = btRayFrom + dir;
+
+				pickCon->getFrameOffsetA().setOrigin(newPivotB);
+			}
 			
 		}
 			break;
