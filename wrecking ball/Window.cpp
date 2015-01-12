@@ -40,6 +40,8 @@ btBroadphaseInterface* broadphase;
 btConstraintSolver* solver;
 btDefaultSoftBodySolver* softbodySolver;
 std::vector<bulletObject*> bodies;
+bulletObject* selected;
+btTransform selected_trans;
 
 // wall parameter
 double wall_height = 50;
@@ -80,7 +82,9 @@ void Window::renderSphere(bulletObject *bobj)
 	btRigidBody* sphere = bobj->body;
 	if (sphere->getCollisionShape()->getShapeType() != SPHERE_SHAPE_PROXYTYPE)
 		return;
-	if (!bobj->hit)
+	if (bobj->selected)
+		glColor3f(0, 0, 1);
+	else if (!bobj->hit)
 		glColor3f(bobj->r, bobj->g, bobj->b);
 	else
 		glColor3f(1, 0, 0);
@@ -297,13 +301,13 @@ void Window::init() {
 	body1->setUserPointer(bodies[bodies.size() - 1]);
 
 	btSoftBody* softBody = btSoftBodyHelpers::CreateRope(world->getWorldInfo(),
-		btVector3(0, 50, 10),
+		btVector3(0, 150, 10),
 		btVector3(0, 25, 10),
 		16,
 		1);
 	softBody->m_cfg.viterations = 50;
 	softBody->m_cfg.piterations = 50;
-	softBody->setTotalMass(3.0);
+	softBody->setTotalMass(0.5);
 	//softBody->getCollisionShape()->setMargin(0.01);
 	softBody->appendAnchor(softBody->m_nodes.size() - 1, body1);
 	world->addSoftBody(softBody);
@@ -372,7 +376,10 @@ void Window::displayCallback() {
 		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
 		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
 		if (rayCallback.hasHit()) {
-			((bulletObject*) (rayCallback.m_collisionObject->getUserPointer()))->selected = true;
+			selected = (bulletObject*)rayCallback.m_collisionObject->getUserPointer();
+			selected->selected = true;
+			selected->body->getMotionState()->getWorldTransform(selected_trans);
+
 		}
 	}
 	else {
@@ -382,7 +389,9 @@ void Window::displayCallback() {
 		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
 		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
 		if (rayCallback.hasHit()) {
-			((bulletObject*) (rayCallback.m_collisionObject->getUserPointer()))->hit = true;
+			selected = (bulletObject*)rayCallback.m_collisionObject->getUserPointer();
+			selected->hit = true;
+			selected->body->getMotionState()->getWorldTransform(selected_trans);
 		}
 	}
 
@@ -462,6 +471,8 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 		}
 			
 			break;
+		case 27:
+			exit(1);
 		default:
 			break;
 	}
@@ -483,8 +494,6 @@ void Window::SpecialKeysCallBack(int key, int x, int y) {
 		break;
 	}
 }
-
-
 
 void Window::MouseClickCallBack(int button, int state, int x, int y) {
 	if (debugOn) {
@@ -549,7 +558,31 @@ void Window::MouseMotionCallBack(int x, int y) {
 		{
 			rayTraceX = x;
 			rayTraceY = y;
-			lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
+			
+			Vector3d mousePosition = rayTracingComputePoint(rayTraceX, rayTraceY);
+
+			Vector4d v(selected_trans.getOrigin().getX(), selected_trans.getOrigin().getY(), selected_trans.getOrigin().getZ());
+			Vector3d tangent = mousePosition - lastPoint;
+			tangent.scale(0.5);
+			Vector3d v1 = lastPoint - camera.getEye();
+			Vector3d v2 = tangent - camera.getEye();
+			Vector3d normal = v1.cross(tangent);
+			normal.normalize();
+			v1.normalize();
+			v2.normalize();
+			double angle = acos(v1.dot(v2)) * 180.0 / M_PI;
+			Matrix4d r;
+			r.makeRotate(-angle, normal);
+			v = r * v;
+			btTransform t;
+			t.setIdentity();
+			t.setOrigin(btVector3(v[0], v[1], v[2]));
+			selected->body->getMotionState()->setWorldTransform(t);
+			cerr << "angle: " << angle << " ";
+			normal.print("normal");
+
+			lastPoint = mousePosition;
+			
 		}
 			break;
 		case trackball::MOVEMENT::NONE:
