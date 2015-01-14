@@ -27,7 +27,7 @@ int Window::frames = 0;
 GLdouble Window::fps = 0;
 
 // Camera(center, look at, up)
-Vector3d eye(0.0, 50.0, 100.0);
+Vector3d eye(0.0, 50.0, 200.0);
 Vector3d lookat(0.0, 0.0, 0.0);
 Vector3d up(0.0, 1.0, 0.0);
 Camera Window::camera(eye, lookat, up);
@@ -40,16 +40,18 @@ btBroadphaseInterface* broadphase;
 btConstraintSolver* solver;
 btDefaultSoftBodySolver* softbodySolver;
 std::vector<bulletObject*> bodies;
-btRigidBody* m_pickedBody;
+bulletObject* m_pickedBody;
 btVector3 m_pickPos;
 btScalar m_pickDist;
 btGeneric6DofConstraint* m_pickConstraint;
 
 // wall parameter
-double wall_height = 50;
-double wall_width = 50;
-double wall_thickness = 10;
-int numOfBrick = 10;
+double brick_height = 10.0;
+double brick_width = 10.0;
+double brick_depth = 10.0;
+int wall_height = 20;
+int wall_width = 10;
+int wall_thickness = 1;
 
 // ray tracing
 double scaler = 10000.0;
@@ -142,36 +144,32 @@ void Window::renderBox(bulletObject* bobj)
 
 	
 	glBegin(GL_QUADS);
+	glNormal3f(-1.0, 0.0, 0.0);
 	glVertex3f(-extent.x(), extent.y(), -extent.z());
 	glVertex3f(-extent.x(), -extent.y(), -extent.z());
 	glVertex3f(-extent.x(), -extent.y(), extent.z());
 	glVertex3f(-extent.x(), extent.y(), extent.z());
-	glEnd();
-	glBegin(GL_QUADS);
+	glNormal3f(1.0, 0.0, 0.0);
 	glVertex3f(extent.x(), extent.y(), extent.z());
 	glVertex3f(extent.x(), -extent.y(), extent.z());
 	glVertex3f(extent.x(), -extent.y(), -extent.z());
 	glVertex3f(extent.x(), extent.y(), -extent.z());
-	glEnd();
-	glBegin(GL_QUADS);
+	glNormal3f(0.0, 0.0, 1.0);
 	glVertex3f(-extent.x(), extent.y(), extent.z());
 	glVertex3f(-extent.x(), -extent.y(), extent.z());
 	glVertex3f(extent.x(), -extent.y(), extent.z());
 	glVertex3f(extent.x(), extent.y(), extent.z());
-	glEnd();
-	glBegin(GL_QUADS);
+	glNormal3f(0.0, 0.0, -1.0);
 	glVertex3f(extent.x(), extent.y(), -extent.z());
 	glVertex3f(extent.x(), -extent.y(), -extent.z());
 	glVertex3f(-extent.x(), -extent.y(), -extent.z());
 	glVertex3f(-extent.x(), extent.y(), -extent.z());
-	glEnd();
-	glBegin(GL_QUADS);
+	glNormal3f(0.0, 1.0, 0.0);
 	glVertex3f(-extent.x(), extent.y(), -extent.z());
 	glVertex3f(-extent.x(), extent.y(), extent.z());
 	glVertex3f(extent.x(), extent.y(), extent.z());
 	glVertex3f(extent.x(), extent.y(), -extent.z());
-	glEnd();
-	glBegin(GL_QUADS);
+	glNormal3f(0.0, -1.0, 0.0);
 	glVertex3f(-extent.x(), -extent.y(), -extent.z());
 	glVertex3f(extent.x(), -extent.y(), -extent.z());
 	glVertex3f(extent.x(), -extent.y(), extent.z());
@@ -195,6 +193,7 @@ void Window::renderPlane(bulletObject* bobj)
 	glPushMatrix();
 	glMultMatrixf(mat);     //translation,rotation
 	glBegin(GL_QUADS);
+	glNormal3f(0.0, 1.0, 0.0);
 	glVertex3f(-1000, 0, 1000);
 	glVertex3f(1000, 0, 1000);
 	glVertex3f(1000, 0, -1000);
@@ -263,31 +262,27 @@ void Window::init() {
 
 
 	// setting up wall
-	double wall_area = wall_height * wall_width;
-	double brick_area = wall_area / numOfBrick;
-	double brick_height = brick_area * wall_height / wall_area;
-	double brick_width = brick_area * wall_width / wall_area;
-	int row = wall_height / brick_height;
-	int col = wall_width / brick_width;
-	double x_start = -wall_width / 2;
-	double y_start = brick_height / 2;
-
-
-
-	for (int i = 0; i < row; i++){
-		for (int j = 0; j < col; j++){
-			if ((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
-				addBox(brick_width, brick_height, wall_thickness, x_start, y_start, 0, 0.5, 0.1, 0.1, 0.1);
-			else
-				addBox(brick_width, brick_height, wall_thickness, x_start, y_start, 0, 0.5, 0.7, 0.7, 0.7);
-			x_start += brick_width;
+	double x_start = (double)wall_width / 2.0;
+	x_start = -x_start * brick_width;
+	double y_start = brick_height / 2.0;
+	double z_start = 0.0;
+	for (int i = 0; i < wall_thickness; i++){
+		for (int j = 0; j < wall_height; j++){
+			for (int k = 0; k < wall_width; k++){
+				if ((k % 2 == 0 && j % 2 == 1) || (k % 2 == 1 && j % 2 == 0))
+					addBox(brick_width, brick_height, brick_depth, x_start, y_start, z_start, 0.5, 0.1, 0.1, 0.1);
+				else
+					addBox(brick_width, brick_height, brick_depth, x_start, y_start, z_start, 0.5, 0.7, 0.7, 0.7);
+				x_start += brick_width;
+			}
+			x_start = -(double)wall_width / 2.0 * brick_width;
+			y_start += brick_height;
 		}
-		if (i % 2 == 1)
-			x_start = -wall_width / 2;
-		else
-			x_start = -wall_width / 2 + brick_width / 2;
-		y_start += brick_height;
+		y_start = brick_height / 2.0;
+		z_start += brick_depth / 2.0;
+
 	}
+
 
 	btTransform t1;
 	t1.setIdentity();
@@ -370,6 +365,7 @@ void Window::reshapeCallback(int w, int h) {
 void Window::displayCallback() {
 	world->stepSimulation(1 / 60.0);
 
+	/*
 	// raytracing test
 	if (movement == trackball::MOVEMENT::SELECTION) {
 		//lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
@@ -392,7 +388,7 @@ void Window::displayCallback() {
 			((bulletObject*)rayCallback.m_collisionObject->getUserPointer())->hit = true;
 		}
 	}
-
+	*/
 	/*double scaler = 1000.0;
 	Vector3d direction = (camera.getLookAt() - camera.getEye()) * scaler;
 	btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
@@ -425,7 +421,6 @@ void Window::displayCallback() {
 	
 	for (int i = 0; i < bodies.size(); i++) {
 		bodies[i]->hit = false;
-		bodies[i]->selected = false;
 	}
 	
 	if (fpsOn) {
@@ -517,15 +512,16 @@ void Window::MouseClickCallBack(int button, int state, int x, int y) {
 		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
 		if (rayCallback.hasHit()){
 			bulletObject* pPhysicsData = reinterpret_cast<bulletObject*>(rayCallback.m_collisionObject->getUserPointer());
-			btRigidBody* pBody = pPhysicsData->body;
-			if (pBody && pPhysicsData)
+			if (pPhysicsData)
 			{
+				btRigidBody * pBody = pPhysicsData->body;
 				// Code for adding a constraint from Bullet Demo's DemoApplication.cpp
 				if (!(pBody->isStaticObject() || pBody->isKinematicObject()))
 				{
-					m_pickedBody = pBody;
-
+					m_pickedBody = pPhysicsData;
+					m_pickedBody->selected = true;
 					m_pickPos = rayCallback.m_hitPointWorld;
+					pBody->setActivationState(DISABLE_DEACTIVATION);
 
 					btVector3 localPivot = pBody->getCenterOfMassTransform().inverse() * m_pickPos;
 
@@ -564,11 +560,16 @@ void Window::MouseClickCallBack(int button, int state, int x, int y) {
 	// reset
 	else {
 		movement = trackball::MOVEMENT::NONE;
-		world->removeConstraint(m_pickConstraint);
-		delete m_pickConstraint;
-		m_pickConstraint = NULL;
-		m_pickedBody->setDeactivationTime(0.f);
-		m_pickedBody = NULL;
+		if (m_pickConstraint != NULL){
+			world->removeConstraint(m_pickConstraint);
+			delete m_pickConstraint;
+			m_pickConstraint = NULL;
+			m_pickedBody->body->forceActivationState(ACTIVE_TAG);
+			m_pickedBody->body->setDeactivationTime(0.f);
+			m_pickedBody->selected = false;
+			m_pickedBody = NULL;
+		}
+		
 	}
 
 	/*if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
