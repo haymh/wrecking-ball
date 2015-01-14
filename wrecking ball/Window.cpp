@@ -74,6 +74,8 @@ btRigidBody* Window::addSphere(float rad, float x, float y, float z, float mass,
 
 	btMotionState* motion = new btDefaultMotionState(t);
 	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
+	info.m_restitution = 2.0f;
+	info.m_friction = 1.5f;
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
 	bodies.push_back(new bulletObject(body, 0, r, g, b));
@@ -110,6 +112,7 @@ btRigidBody* Window::addBox(float width, float height, float depth, float x, flo
 	t.setIdentity();
 	t.setOrigin(btVector3(x, y, z));
 	btBoxShape* sphere = new btBoxShape(btVector3(width / 2.0, height / 2.0, depth / 2.0));
+	sphere->setMargin(0.001f);
 	btVector3 inertia(0, 0, 0);
 	if (mass != 0.0)
 		sphere->calculateLocalInertia(mass, inertia);
@@ -253,8 +256,11 @@ void Window::init() {
 	t.setIdentity();
 	t.setOrigin(btVector3(0, 0, 0));
 	btStaticPlaneShape* plane = new btStaticPlaneShape(btVector3(0, 1, 0), 0);
-	btMotionState* motion = new btDefaultMotionState(t);
-	btRigidBody::btRigidBodyConstructionInfo info(0.0, motion, plane);
+	btMotionState* motion = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, -1, 0)));
+	btRigidBody::btRigidBodyConstructionInfo info(0.0, motion, plane, btVector3(0, 0, 0));
+	//info.m_linearDamping = 0.2f;
+	info.m_restitution = 0.0f;
+	info.m_friction = 0.5f;
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
 	bodies.push_back(new bulletObject(body, 4, 0.8, 0.8, 0.8));
@@ -457,9 +463,9 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 		{
 			Vector3d e = camera.getEye();
 			Vector3d d = camera.getLookAt();
-			btRigidBody* sphere = addSphere(1.0, e[0], e[1], e[2], 1.0, 32.0 / 256.0, 64.0 / 256.0, 20.0 / 256.0);
+			btRigidBody* sphere = addSphere(5.0, e[0], e[1], e[2], 0.2, 32.0 / 256.0, 64.0 / 256.0, 20.0 / 256.0);
 			Vector3d look = d - e;
-			look.scale(0.5);
+			look.scale(1.1);
 			sphere->setLinearVelocity(btVector3(look[0], look[1], look[2]));
 		}
 			
