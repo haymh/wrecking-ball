@@ -8,7 +8,7 @@ int main(int argc, char *argv []) {
 	glutInit(&argc, argv);      	      	      // initialize GLUT
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);   // open an OpenGL context with double buffering, RGB colors, and depth buffering
 	glutInitWindowSize(Window::width, Window::height);      // set initial window size
-	glutCreateWindow("OpenGL Cube");    	      // open window and set window title
+	glutCreateWindow("Wrecking Ball");    	      // open window and set window title
 
 	glEnable(GL_TEXTURE_2D);   // enable texture mapping
 	glShadeModel(GL_SMOOTH);   // enable smooth shading
@@ -50,6 +50,14 @@ int main(int argc, char *argv []) {
 	// Initialize robot matrix:
 	Window::init();
 	glutMainLoop();
+
+	delete Window::world;
+	delete Window::solver;
+	delete Window::softbodySolver;
+	delete Window::dispatcher;
+	delete Window::collisionConfig;
+	delete Window::broadphase;
+	
 	return 0;
 }
 

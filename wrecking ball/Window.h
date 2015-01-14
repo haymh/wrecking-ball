@@ -3,7 +3,7 @@
 
 #define M_PI 3.14159265358979323846
 #define ROT_SCALAR 90.0;
-#define ZOOM_SCALAR 1.0;
+#define ZOOM_SCALAR 100.0;
 
 #include <time.h>
 #include <iostream>
@@ -40,27 +40,61 @@ struct bulletObject{
 class Window	  // OpenGL output window related routines
 {
 	public:
-	// Window Size
-	static int width, height;
+	// Debugger
+	static bool debugOn;
+
+	// Window
+	static int width;   // set window width in pixels here
+	static int height;   // set window height in pixels here
 
 	// Track Ball
-	static int prevX, prevY;
-	static Vector3d lastPoint;
+	static int prevX;
+	static int prevY;
 	static int movement;
-
-	// Scene
+	static Vector3d lastPoint;
 	static MatrixTransform* root;
 	static MatrixTransform* rotation;
 	static MatrixTransform* scaling;
 
-	// Frame Calculator
+	// Frame Calculator 
+	static bool fpsOn;
 	static int time;
 	static int baseTime;
 	static int frames;
 	static GLdouble fps;
 
-	// Camera
+	// Camera(center, look at, up)
+	static Vector3d eye;
+	static Vector3d lookat;
+	static Vector3d up;
 	static Camera camera;
+	static double motion_displacement;
+
+	// physics world parameters
+	static btSoftRigidDynamicsWorld* world;
+	static btDispatcher* dispatcher;
+	static btCollisionConfiguration* collisionConfig;
+	static btBroadphaseInterface* broadphase;
+	static btConstraintSolver* solver;
+	static btDefaultSoftBodySolver* softbodySolver;
+	static vector<bulletObject*> bodies;
+	static bulletObject* m_pickedBody;
+	static btVector3 m_pickPos;
+	static btScalar m_pickDist;
+	static btGeneric6DofConstraint* m_pickConstraint;
+
+	// wall parameter
+	static double brick_height;
+	static double brick_width;
+	static double brick_depth;
+	static int wall_height;
+	static int wall_width;
+	static int wall_thickness;
+
+	// ray tracing
+	static double scaler;
+	static int rayTraceX;
+	static int rayTraceY;
 
 	static void init();
 

@@ -4,7 +4,7 @@
 #include <vector>
 
 // Debugger
-bool debugOn = false;
+bool Window::debugOn = false;
 
 // Window
 int Window::width = 512;   // set window width in pixels here
@@ -20,46 +20,44 @@ MatrixTransform* Window::rotation;
 MatrixTransform* Window::scaling;
 
 // Frame Calculator 
-bool fpsOn = false;
+bool Window::fpsOn = true;
 int Window::time = 0;
 int Window::baseTime = 0;
 int Window::frames = 0;
 GLdouble Window::fps = 0;
 
 // Camera(center, look at, up)
-Vector3d eye(0.0, 50.0, 200.0);
-Vector3d lookat(0.0, 0.0, 0.0);
-Vector3d up(0.0, 1.0, 0.0);
+Vector3d Window::eye(0.0, 50.0, 200.0);
+Vector3d Window::lookat(0.0, 0.0, 0.0);
+Vector3d Window::up(0.0, 1.0, 0.0);
 Camera Window::camera(eye, lookat, up);
+double Window::motion_displacement = 1.0;
 
 // physics world parameters
-btSoftRigidDynamicsWorld* world;
-btDispatcher* dispatcher;
-btCollisionConfiguration* collisionConfig;
-btBroadphaseInterface* broadphase;
-btConstraintSolver* solver;
-btDefaultSoftBodySolver* softbodySolver;
-std::vector<bulletObject*> bodies;
-bulletObject* m_pickedBody;
-btVector3 m_pickPos;
-btScalar m_pickDist;
-btGeneric6DofConstraint* m_pickConstraint;
+btSoftRigidDynamicsWorld* Window::world;
+btDispatcher* Window::dispatcher;
+btCollisionConfiguration* Window::collisionConfig;
+btBroadphaseInterface* Window::broadphase;
+btConstraintSolver* Window::solver;
+btDefaultSoftBodySolver* Window::softbodySolver;
+vector<bulletObject*> Window::bodies;
+bulletObject* Window::m_pickedBody;
+btVector3 Window::m_pickPos;
+btScalar Window::m_pickDist;
+btGeneric6DofConstraint* Window::m_pickConstraint;
 
 // wall parameter
-double brick_height = 10.0;
-double brick_width = 10.0;
-double brick_depth = 10.0;
-int wall_height = 20;
-int wall_width = 10;
-int wall_thickness = 1;
+double Window::brick_height = 10.0;
+double Window::brick_width = 10.0;
+double Window::brick_depth = 10.0;
+int Window::wall_height = 10;
+int Window::wall_width = 10;
+int Window::wall_thickness = 1;
 
 // ray tracing
-double scaler = 10000.0;
-int rayTraceX = Window::width / 2;
-int rayTraceY = Window::height / 2;
-
-
-
+double Window::scaler = 10000.0;
+int Window::rayTraceX = Window::width / 2;
+int Window::rayTraceY = Window::height / 2;
 
 
 btRigidBody* Window::addSphere(float rad, float x, float y, float z, float mass, float r, float g, float b)
@@ -67,14 +65,14 @@ btRigidBody* Window::addSphere(float rad, float x, float y, float z, float mass,
 	btTransform t;
 	t.setIdentity();
 	t.setOrigin(btVector3(x, y, z));
-	btSphereShape* sphere = new btSphereShape(rad);
+	btCollisionShape* sphere = new btSphereShape(rad);
 	btVector3 inertia(0, 0, 0);
 	if (mass != 0.0)
 		sphere->calculateLocalInertia(mass, inertia);
 
 	btMotionState* motion = new btDefaultMotionState(t);
 	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
-	info.m_restitution = 2.0f;
+	info.m_restitution = 0.1f;
 	info.m_friction = 1.5f;
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
@@ -111,14 +109,14 @@ btRigidBody* Window::addBox(float width, float height, float depth, float x, flo
 	btTransform t;
 	t.setIdentity();
 	t.setOrigin(btVector3(x, y, z));
-	btBoxShape* sphere = new btBoxShape(btVector3(width / 2.0, height / 2.0, depth / 2.0));
-	sphere->setMargin(0.001f);
+	btCollisionShape* box = new btBoxShape(btVector3(width / 2.0, height / 2.0, depth / 2.0));
+	box->setMargin(0.001f);
 	btVector3 inertia(0, 0, 0);
 	if (mass != 0.0)
-		sphere->calculateLocalInertia(mass, inertia);
+		box->calculateLocalInertia(mass, inertia);
 
 	btMotionState* motion = new btDefaultMotionState(t);
-	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
+	btRigidBody::btRigidBodyConstructionInfo info(mass, motion, box, inertia);
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
 	bodies.push_back(new bulletObject(body, 3, r, g, b));
@@ -128,8 +126,8 @@ btRigidBody* Window::addBox(float width, float height, float depth, float x, flo
 
 void Window::renderBox(bulletObject* bobj)
 {
-	btRigidBody* sphere = bobj->body;
-	if (sphere->getCollisionShape()->getShapeType() != BOX_SHAPE_PROXYTYPE)
+	btRigidBody* box = bobj->body;
+	if (box->getCollisionShape()->getShapeType() != BOX_SHAPE_PROXYTYPE)
 		return;
 	if (bobj->selected)
 		glColor3f(0, 0, 1);
@@ -137,9 +135,9 @@ void Window::renderBox(bulletObject* bobj)
 		glColor3f(bobj->r, bobj->g, bobj->b);
 	else
 		glColor3f(1, 0, 0);
-	btVector3 extent = ((btBoxShape*)sphere->getCollisionShape())->getHalfExtentsWithoutMargin();
+	btVector3 extent = ((btBoxShape*) box->getCollisionShape())->getHalfExtentsWithoutMargin();
 	btTransform t;
-	sphere->getMotionState()->getWorldTransform(t);
+	box->getMotionState()->getWorldTransform(t);
 	float mat[16];
 	t.getOpenGLMatrix(mat);
 	glPushMatrix();
@@ -240,26 +238,32 @@ void Window::init() {
 	root->addChild(scaling);
 	scaling->addChild(rotation);
 	
+	// Setting up physics world
+	// Build the broadphase
+	broadphase = new btDbvtBroadphase();
 	
-	// setting up physics world
+	// Set up the collision configuration and dispatcher
 	collisionConfig = new btSoftBodyRigidBodyCollisionConfiguration();
 	dispatcher = new btCollisionDispatcher(collisionConfig);
-	broadphase = new btDbvtBroadphase();
+	
+	// The actual physics solver
 	solver = new btSequentialImpulseConstraintSolver();
 	softbodySolver = new btDefaultSoftBodySolver();
+	
+	// The world
 	world = new btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfig, softbodySolver);
 	world->setGravity(btVector3(0, -10, 0));
 
 
-	// setting up ground
+	// Setting up ground
 	btTransform t;
 	t.setIdentity();
 	t.setOrigin(btVector3(0, 0, 0));
-	btStaticPlaneShape* plane = new btStaticPlaneShape(btVector3(0, 1, 0), 0);
-	btMotionState* motion = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, -1, 0)));
+	btCollisionShape* plane = new btStaticPlaneShape(btVector3(0, 1, 0), 1);
+	btDefaultMotionState* motion = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, -1, 0)));
 	btRigidBody::btRigidBodyConstructionInfo info(0.0, motion, plane, btVector3(0, 0, 0));
 	//info.m_linearDamping = 0.2f;
-	info.m_restitution = 0.0f;
+	info.m_restitution = 1.0f;
 	info.m_friction = 0.5f;
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
@@ -272,13 +276,15 @@ void Window::init() {
 	x_start = -x_start * brick_width;
 	double y_start = brick_height / 2.0;
 	double z_start = 0.0;
+	double mass = 10.0;
+
 	for (int i = 0; i < wall_thickness; i++){
 		for (int j = 0; j < wall_height; j++){
 			for (int k = 0; k < wall_width; k++){
 				if ((k % 2 == 0 && j % 2 == 1) || (k % 2 == 1 && j % 2 == 0))
-					addBox(brick_width, brick_height, brick_depth, x_start, y_start, z_start, 0.5, 0.1, 0.1, 0.1);
+					addBox(brick_width, brick_height, brick_depth, x_start, y_start, z_start, mass, 0.1, 0.1, 0.1);
 				else
-					addBox(brick_width, brick_height, brick_depth, x_start, y_start, z_start, 0.5, 0.7, 0.7, 0.7);
+					addBox(brick_width, brick_height, brick_depth, x_start, y_start, z_start, mass, 0.7, 0.7, 0.7);
 				x_start += brick_width;
 			}
 			x_start = -(double)wall_width / 2.0 * brick_width;
@@ -444,26 +450,26 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 	switch (key) {
 		// up
 		case 'w':
-			camera.moveEye(UPWARD, 1);
+			camera.moveEye(UPWARD, motion_displacement);
 			break;
 		// down
 		case 's':
-			camera.moveEye(DOWNWARD, 1);
+			camera.moveEye(DOWNWARD, motion_displacement);
 			break;
 		// left
 		case 'a':
-			camera.moveEye(LEFTWARD, 1);
+			camera.moveEye(LEFTWARD, motion_displacement);
 			break;
 		// right
 		case 'd':
-			camera.moveEye(RIGHTWARD, 1);
+			camera.moveEye(RIGHTWARD, motion_displacement);
 			break;
 
 		case ' ':
 		{
 			Vector3d e = camera.getEye();
 			Vector3d d = camera.getLookAt();
-			btRigidBody* sphere = addSphere(5.0, e[0], e[1], e[2], 0.2, 32.0 / 256.0, 64.0 / 256.0, 20.0 / 256.0);
+			btRigidBody* sphere = addSphere(5.0, e[0], e[1], e[2], 5.0, 32.0 / 256.0, 64.0 / 256.0, 20.0 / 256.0);
 			Vector3d look = d - e;
 			look.scale(1.1);
 			sphere->setLinearVelocity(btVector3(look[0], look[1], look[2]));
@@ -480,16 +486,16 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 void Window::SpecialKeysCallBack(int key, int x, int y) {
 	switch (key){
 	case GLUT_KEY_UP:
-		camera.move(UPWARD, 0.5);
+		camera.move(UPWARD, motion_displacement);
 		break;
 	case GLUT_KEY_DOWN:
-		camera.move(DOWNWARD, 0.5);
+		camera.move(DOWNWARD, motion_displacement);
 		break;
 	case GLUT_KEY_LEFT:
-		camera.move(LEFTWARD, 0.5);
+		camera.move(LEFTWARD, motion_displacement);
 		break;
 	case GLUT_KEY_RIGHT:
-		camera.move(RIGHTWARD, 0.5);
+		camera.move(RIGHTWARD, motion_displacement);
 		break;
 	}
 }
@@ -605,11 +611,17 @@ void Window::MouseMotionCallBack(int x, int y) {
 		case trackball::MOVEMENT::SCALING:
 		{
 			pixel_diff = currentPoint.get(1) - lastPoint.get(1);
-			zoom_factor = 1.0 + pixel_diff * ZOOM_SCALAR;
-
-			Matrix4d scailingUpdate;
+			// zoom_factor = 1.0 + pixel_diff * ZOOM_SCALAR;
+			zoom_factor = pixel_diff * ZOOM_SCALAR;
+			cerr << pixel_diff << endl;
+			if (zoom_factor > 0)
+				camera.move(FORWARD, zoom_factor);
+			else
+				camera.move(BACKWARD, -zoom_factor);
+			/*Matrix4d scailingUpdate;
 			scailingUpdate.makeScale(zoom_factor, zoom_factor, zoom_factor);
 			scaling->setMatrix(scailingUpdate * scaling->getMatrix());
+			*/
 			lastPoint = currentPoint;
 		}
 			break;
