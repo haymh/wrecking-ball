@@ -264,7 +264,7 @@ void Window::init() {
 	btRigidBody* body = new btRigidBody(info);
 	world->addRigidBody(body);
 	bodies.push_back(new bulletObject(body, 4, 0.8, 0.8, 0.8));
-	body->setUserPointer(bodies[bodies.size() - 1]);
+	body->setUserPointer(bodies[bodies.size() - 1]);  
 
 
 	// setting up wall
