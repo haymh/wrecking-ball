@@ -15,9 +15,9 @@ int Window::prevX = width / 2;
 int Window::prevY = height / 2;
 int Window::movement = trackball::MOVEMENT::NONE;
 Vector3d Window::lastPoint;
-MatrixTransform* Window::root;
+/*MatrixTransform* Window::root;
 MatrixTransform* Window::rotation;
-MatrixTransform* Window::scaling;
+MatrixTransform* Window::scaling;*/
 
 // Frame Calculator 
 bool Window::fpsOn = true;
@@ -231,13 +231,14 @@ void Window::renderSoftbody(btSoftBody* b)
 }
 
 void Window::init() {
-	root = new MatrixTransform(Matrix4d());
+	/*root = new MatrixTransform(Matrix4d());
 	rotation = new MatrixTransform(Matrix4d());
 	scaling = new MatrixTransform(Matrix4d());
 
 	root->addChild(scaling);
 	scaling->addChild(rotation);
-	
+	*/
+
 	// Setting up physics world
 	// Build the broadphase
 	broadphase = new btDbvtBroadphase();
@@ -464,8 +465,25 @@ void Window::keyBoardCallBack(unsigned char key, int x, int y) {
 		case 'd':
 			camera.moveEye(RIGHTWARD, motion_displacement);
 			break;
-
+		// reset
 		case ' ':
+			delete Window::world;
+			delete Window::solver;
+			delete Window::softbodySolver;
+			delete Window::dispatcher;
+			delete Window::collisionConfig;
+			delete Window::broadphase;
+
+			while (!bodies.empty()) {
+				delete bodies.at(bodies.size() - 1);
+				bodies.pop_back();
+			}
+
+			init();
+
+			break;
+		// shooting spheres
+		case 'x':
 		{
 			Vector3d e = camera.getEye();
 			Vector3d d = camera.getLookAt();

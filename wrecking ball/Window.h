@@ -52,9 +52,9 @@ class Window	  // OpenGL output window related routines
 	static int prevY;
 	static int movement;
 	static Vector3d lastPoint;
-	static MatrixTransform* root;
+	/*static MatrixTransform* root;
 	static MatrixTransform* rotation;
-	static MatrixTransform* scaling;
+	static MatrixTransform* scaling;*/
 
 	// Frame Calculator 
 	static bool fpsOn;
