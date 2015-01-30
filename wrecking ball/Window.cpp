@@ -537,7 +537,7 @@ void Window::MouseClickCallBack(int button, int state, int x, int y) {
 		rayTraceY = y;
 		lastPoint = rayTracingComputePoint(rayTraceX, rayTraceY);
 		btVector3 btRayFrom(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]);
-		Vector3d direction = (lastPoint - camera.getEye()) * scaler;;
+		Vector3d direction = (lastPoint - camera.getEye()) * scaler;
 		btCollisionWorld::ClosestRayResultCallback rayCallback(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]));
 		world->rayTest(btVector3(camera.getEye()[0], camera.getEye()[1], camera.getEye()[2]), btVector3(direction[0], direction[1], direction[2]), rayCallback);
 		if (rayCallback.hasHit()){
